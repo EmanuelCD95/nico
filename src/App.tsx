@@ -13,6 +13,7 @@ function App() {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [started, setStarted] = useState(false);
+  const [hasSwiped, setHasSwiped] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
@@ -31,6 +32,20 @@ function App() {
             };
           });
         setGalleryItems(data);
+
+        // Check for 'start' query parameter
+        const params = new URLSearchParams(window.location.search);
+        const startParam = params.get('start');
+        if (startParam) {
+          const startId = parseInt(startParam, 10);
+          const startIndex = data.findIndex(item => item.id === startId);
+          if (startIndex !== -1) {
+            setCurrentIndex(startIndex);
+          } else if (startId > 0 && startId <= data.length) {
+            // Fallback: use as 1-based index if ID not exactly found
+            setCurrentIndex(startId - 1);
+          }
+        }
       });
   }, []);
 
@@ -59,8 +74,14 @@ function App() {
   };
 
   const swipeHandlers = useSwipeable({
-    onSwipedLeft: handleNext,
-    onSwipedRight: handlePrev,
+    onSwipedLeft: () => {
+      setHasSwiped(true);
+      handleNext();
+    },
+    onSwipedRight: () => {
+      setHasSwiped(true);
+      handlePrev();
+    },
     preventScrollOnSwipe: true,
   });
 
@@ -69,29 +90,58 @@ function App() {
   if (!started) {
     return (
       <div className="splash">
-        <button onClick={() => setStarted(true)}>Start Experience</button>
+        <img src="/nicodreia.png" alt="Nicodreia" className="splash-logo" />
+        <button onClick={() => setStarted(true)}>07.06.2026</button>
       </div>
     );
   }
 
+  const isVideo = currentItem?.photo?.toLowerCase().match(/\.(mp4|mov)$/);
+
   return (
     <div {...swipeHandlers} className="gallery-container">
       <AnimatePresence mode="wait">
-        <motion.img
-          key={currentItem.id}
-          src={currentItem.photo}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
-          className="fullscreen-image"
-        />
+        {isVideo ? (
+          <motion.video
+            key={currentItem.id}
+            src={currentItem.photo}
+            autoPlay
+            loop
+            playsInline
+            muted
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="fullscreen-image"
+          />
+        ) : (
+          <motion.img
+            key={currentItem.id}
+            src={currentItem.photo}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="fullscreen-image"
+          />
+        )}
       </AnimatePresence>
       
-      <button className="nav-arrow left" onClick={handlePrev}>&lt;</button>
-      <button className="nav-arrow right" onClick={handleNext}>&gt;</button>
+      {!hasSwiped && (
+        <>
+          <button className="nav-arrow left" onClick={handlePrev}>&lt;</button>
+          <button className="nav-arrow right" onClick={handleNext}>&gt;</button>
+        </>
+      )}
 
-      <audio ref={audioRef} />
+      {currentIndex === 0 && !hasSwiped && (
+        <div className="swipe-instruction">
+          swipe left
+        </div>
+      )}
+
+      <audio ref={audioRef} loop />
     </div>
   );
 }
