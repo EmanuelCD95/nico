@@ -66,11 +66,11 @@ function App() {
   }, [currentIndex, started, currentItem]);
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % galleryItems.length);
+    setCurrentIndex((prev) => Math.min(prev + 1, galleryItems.length - 1));
   };
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + galleryItems.length) % galleryItems.length);
+    setCurrentIndex((prev) => Math.max(prev - 1, 0));
   };
 
   const swipeHandlers = useSwipeable({
